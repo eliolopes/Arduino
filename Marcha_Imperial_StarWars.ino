@@ -160,4 +160,3 @@ beep(f, 250);
  
   delay(650);
 }
-- See more at: http://tecnologiaeciencia.com.br/arduino-marcha-imperial-star-wars/#sthash.ekJsNIet.dpuf
