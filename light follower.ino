@@ -1,4 +1,5 @@
 /*
+2 - http://scuola.arduino.cc/courses/lessons/view/3RPXE7n
 A simple light follower
   
 author: Arturo Guadalupi <a.guadalupi@arduino.cc>
