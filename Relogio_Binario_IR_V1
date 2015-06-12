@@ -1,0 +1,437 @@
+/*---------------------
+RELOGIO BINARIO
+http://youtu.be/FJPdBJ-vIX8
+Horas: 1,2,4,8,16
+Minutos: 1,2,4,8,16,32
+Segundos: 1,2,4,8,16,32
+-----------------------*/
+
+/*----- VARIAVEIS -----*/
+#include <IRremote.h>
+#define Hmais	0x613EE01F
+#define Hmenos	0x613E807F
+#define Mmais	0x613E10EF
+#define Mmenos	0x613E40BF
+#define Blink	0x613EC03F
+#define RECV_PIN 19
+IRrecv irrecv(RECV_PIN);
+decode_results results;
+
+int Som = 18;//Som Buzz
+
+long previousMillis = 0;
+long interval = 1000;
+int Horas = 0;
+int Minutos = 0;
+int Segundos = 0;
+int ledHoras[4] = {2, 3, 4, 5}; //Leds das horas
+int ledMinutos[6] = {6, 7, 8, 9, 10, 11}; //Leds dos minutos
+int ledSegundos[6] = {12, 13, 14, 15, 16, 17}; //leds dos segundos
+
+/*----- SETUP -----*/
+void setup()
+{
+	irrecv.enableIRIn(); // Start the receiver
+	pinMode(Som, OUTPUT);
+
+	for (int i = 0; i < 5; i++)
+	{
+		pinMode(ledHoras[i], OUTPUT);
+	}
+	for (int i = 0; i < 6; i++)
+	{
+		pinMode(ledMinutos[i], OUTPUT);
+		pinMode(ledSegundos[i], OUTPUT);
+	}
+
+	/*----- Blink test -----*/
+	for(byte i = 0; i < 18; i++)
+	{
+		digitalWrite(i + 0, 1); 
+		delay(100);
+		digitalWrite(i + 0, 0); 
+		delay(10);
+	}
+	Beep();
+	Horas = 10;   //Hora Inicio
+	Minutos = 23; //Minutos Inicio
+	Segundos = 00; //Segundos Inicio
+	
+}
+/*----- LOOP PRINCIPAL -----*/
+void loop()
+{
+	unsigned long currentMillis = millis();
+
+	if (currentMillis - previousMillis > interval)
+	{
+		previousMillis = currentMillis;
+
+		RelogDec(); //Relógio decimal
+		RelogBin(); //Relogio binario
+
+		if (irrecv.decode(&results))
+		{
+			switch (results.value)
+			{
+				case Hmais:
+					Horas++;
+					Segundos = 0;
+					break;
+
+				case Hmenos:
+					if (Horas <= 0)
+					{
+						Horas = 12;
+						Segundos = 0;
+						break;
+					}
+					else
+					{
+						Horas--;
+						Segundos = 0;
+						break;
+					}
+				case Mmais:
+					Minutos++;
+					Segundos = 0;
+					break;
+
+				case Mmenos:
+					if (Minutos <= 0)
+					{
+						Minutos = 59;
+						Segundos = 0;
+						break;
+					}
+					else
+					{
+						Minutos--;
+						Segundos = 0;
+						break;
+					}
+
+				case Blink:
+					for(byte i = 0; i < 17; i++)
+					{
+						digitalWrite(i + 0, 1);
+						delay(50);
+						digitalWrite(i + 0, 0);
+						delay(5);
+					}
+					Beep();
+					for(byte i = 18; i > 0; i--)
+					{
+						digitalWrite(i + 0, 1);
+						delay(100);
+						digitalWrite(i + 0, 0); 
+						delay(10);
+					}
+
+					break;
+			}
+			irrecv.resume(); // Recebe proximo valor
+		}
+	}
+}
+/*----- RELOGIO DECIMAL -----*/
+void RelogDec()
+{
+	Segundos++;
+	if (Segundos == 60)
+	{
+		Segundos = 0;
+		Minutos++;
+	}
+	if (Minutos == 60)
+	{
+		Minutos = 0;
+		Horas++;
+		Beep();
+	}
+	if (Horas == 13)
+	{
+		Horas = 1;
+	}
+}
+/*----- RELOGIO BINARIO -----*/
+void RelogBin()
+{
+	//Segundos
+	for (int j = 0; j < 6; j++)
+	{
+		if (delayMicroseconds(Segundos, 6).substring(j, j + 1) == "0")
+		{
+			digitalWrite(ledSegundos[j], LOW);
+		}
+		else
+		{
+			digitalWrite(ledSegundos[j], HIGH);
+		}
+	}
+	//Minutos
+	for (int j = 0; j < 6; j++)
+	{
+		if (delayMicroseconds(Minutos, 6).substring(j, j + 1) == "0")
+		{
+			digitalWrite(ledMinutos[j], LOW);
+		}
+		else
+		{
+			digitalWrite(ledMinutos[j], HIGH);
+		}
+	}
+	//Horas
+	for (int j = 0; j < 4; j++)
+	{
+		if (delayMicroseconds(Horas, 4).substring(j, j + 1) == "0")
+		{
+			digitalWrite(ledHoras[j], LOW);
+		}
+		else
+		{
+			digitalWrite(ledHoras[j], HIGH);
+		}
+	}
+}
+
+/*----- CONVERTE DECIMAL PARA BINARIO -----*/
+String delayMicroseconds(int num, int qtd)
+{
+	//Retorna uma string de 'qtd' posições.
+	int zeros = qtd - String(num, BIN).length();
+	String str;
+	for (int i = 0; i < zeros; i++)
+	{
+		str = str + "0";
+	}
+	return str = str + String(num, BIN);
+}
+/*----- Beep -----*/
+void Beep()
+{
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+	digitalWrite(Som, HIGH);
+	delayMicroseconds(1014);
+	digitalWrite(Som, LOW);
+	delayMicroseconds(1014);
+}
